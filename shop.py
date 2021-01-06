@@ -61,7 +61,8 @@ def draw_shop():
 
 
 def draw_shop_section(what, lk1, lk2, lk3, price):
-    global second_x, second_y, second_w, second_h, third_x, third_y, third_w, third_h, is_bought1, is_bought2, s, t
+    global second_x, second_y, second_w, second_h, third_x, third_y, third_w, third_h, is_bought1, is_bought2, s, t, \
+        font1
     font, font1, color = pygame.font.Font(None, 100), pygame.font.Font(None, 30), pygame.Color('black')
     surf = pygame.Surface((WIDTH, HEIGHT))
 
@@ -114,35 +115,60 @@ def draw_shop_section(what, lk1, lk2, lk3, price):
 
 
 def shop_section(what, lk1, lk2, lk3, price):
+    global money
     clock = pygame.time.Clock()
     running_section = True
-    click = 0
+    click, flag_buy = 0, False
 
     while running_section:
         for event in pygame.event.get():
             keys = pygame.key.get_pressed()
             if event.type == pygame.QUIT:
                 running_section = False
-            if event.type == pygame.MOUSEBUTTONUP:
+            if event.type == pygame.MOUSEBUTTONDOWN:
                 buy_x, buy_y = event.pos
                 if second_x < buy_x < second_x + second_w and second_y < buy_y < second_y + second_h \
                         and s == 'no':
                     click = 1
-                    print('Хочу первое')
+                    flag_buy = True
                 elif third_x < buy_x < third_x + third_w and third_y < buy_y < third_y + third_h and t == 'no':
                     click = 2
-                    print('Хочу второе')
+                    flag_buy = True
 
-            if keys[pygame.K_ESCAPE] and click == 1:
-                cur.execute(f"""UPDATE shop SET is_bought = 'да' WHERE name = '{lk2}'""")
-                con.commit()
-                print('купили Первое')
-            elif keys[pygame.K_ESCAPE] and click == 2:
-                cur.execute(f"""UPDATE shop SET is_bought = 'да' WHERE name = '{lk3}'""")
-                con.commit()
-                print('купили Второе')
+            if keys[pygame.K_ESCAPE] and (click == 1 or click == 2):
+                flag_buy = False
+
+            elif keys[pygame.K_SPACE] and click == 1:
+                if price + 300 <= money:
+                    money = money - (price + 300)
+                    cur.execute(f"""UPDATE shop SET is_bought = 'да' WHERE name = '{lk2}'""")
+                    cur.execute(f"""INSERT INTO hranilishe(name) VALUES('{lk2}')""")
+                    con.commit()
+                    flag_buy = False
+
+            elif keys[pygame.K_SPACE] and click == 2:
+                if price + 600 <= money:
+                    money = money - (price + 600)
+                    cur.execute(f"""UPDATE shop SET is_bought = 'да' WHERE name = '{lk3}'""")
+                    cur.execute(f"""INSERT INTO hranilishe(name) VALUES('{lk3}')""")
+                    con.commit()
+                    flag_buy = False
 
         draw_shop_section(what, lk1, lk2, lk3, price)
+
+        if flag_buy:
+            vivod = ['Нажмите ПРОБЕЛ, чтобы подвердить покупку',
+                     'Для отмены нажмите ESC. Если у вас недостаточно средств,',
+                     'вам будет недоступно первое действие.']
+            text_coord = 500
+            for line in vivod:
+                string_rendered = font1.render(line, True, pygame.Color('red'))
+                intro_rect = string_rendered.get_rect()
+                text_coord += 10
+                intro_rect.top = text_coord
+                intro_rect.x = WIDTH // 3
+                text_coord += intro_rect.height
+                screen_shop.blit(string_rendered, intro_rect)
 
         pygame.display.flip()
         clock.tick(FPS)
@@ -150,7 +176,7 @@ def shop_section(what, lk1, lk2, lk3, price):
 
 def shop():
     global money
-    money = 1000  # ПОТОМ ИЗМЕНИТЬ!!!
+    money = 5000  # ПОТОМ ИЗМЕНИТЬ!!!
     running_shop = True
     clock = pygame.time.Clock()
     screen_shop.fill('white')
